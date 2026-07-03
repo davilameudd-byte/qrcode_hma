@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atualizar Posição de Estoque - HMA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f0f5ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:36px;max-width:520px;width:100%;box-shadow:0 8px 32px rgba(14,30,89,.12)}
+.header{text-align:center;margin-bottom:28px}
+.logo{width:64px;height:64px;background:linear-gradient(135deg,#0d1f4e,#1e3f8f);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
+h1{font-size:21px;font-weight:800;color:#0f172a;margin-bottom:6px}
+.subtitle{font-size:13px;color:#64748b;line-height:1.5}
+.drop-zone{border:2px dashed #a5c0ef;border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;background:#f8fbff}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#2454b8;background:#eff6ff}
+.drop-zone .icon{font-size:36px;margin-bottom:10px}
+.drop-zone p{font-size:14px;color:#64748b}
+.drop-zone strong{color:#1e3f8f;font-weight:700}
+.drop-zone .file-name{margin-top:8px;font-size:13px;font-weight:600;color:#2454b8;background:#dce8fd;padding:4px 12px;border-radius:6px;display:inline-block}
+input[type=file]{display:none}
+.tipos{font-size:11px;color:#94a3b8;margin-top:6px}
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,#1e3f8f,#2e6be6);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn:hover{opacity:.92}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.resultado{margin-top:20px;padding:16px;border-radius:12px;display:none}
+.resultado.ok{background:#EAF3DE;border:1px solid #97C459}
+.resultado.erro{background:#FCEBEB;border:1px solid #F09595}
+.resultado h3{font-size:13px;font-weight:800;margin-bottom:10px}
+.resultado.ok h3{color:#27500A}
+.resultado.erro h3{color:#791F1F}
+.stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px}
+.stat:last-child{border:none}
+.stat .k{color:#64748b;font-weight:600}
+.stat .v{font-weight:700;color:#0f172a}
+.spinner{display:none;width:22px;height:22px;border:3px solid #dce8fd;border-top-color:#2e6be6;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.instrucoes{background:#f8fbff;border-radius:12px;padding:14px 16px;margin-bottom:20px;border:1px solid #dce8fd}
+.instrucoes h4{font-size:12px;font-weight:700;color:#1e3f8f;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.instrucoes li{font-size:12px;color:#64748b;line-height:1.8;margin-left:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="logo">📊</div>
+    <h1>Atualizar Posição de Estoque</h1>
+    <p class="subtitle">Importe o relatório de posição do sistema para atualizar o estoque no MySQL em segundos.</p>
+  </div>
+
+  <div class="instrucoes">
+    <h4>Como usar</h4>
+    <ol>
+      <li>Exporte o relatório de posição de estoque do sistema</li>
+      <li>Salve como <strong>.xlsx</strong> ou <strong>.csv</strong></li>
+      <li>Arraste ou selecione o arquivo abaixo</li>
+      <li>Clique em <strong>Importar Agora</strong></li>
+    </ol>
+  </div>
+
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📂</div>
+    <p>Arraste o arquivo aqui ou <strong>clique para selecionar</strong></p>
+    <div class="tipos">Formatos aceitos: .xlsx · .xls · .csv</div>
+    <div class="file-name" id="fileName" style="display:none"></div>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="selecionarArquivo(this)">
+
+  <div class="spinner" id="spinner"></div>
+  <button class="btn" id="btn" onclick="importar()" disabled>📥 Importar Agora</button>
+
+  <div class="resultado" id="resultado"></div>
+</div>
+
+<script>
+let arquivoSelecionado = null;
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setArquivo(f);
+});
+
+function selecionarArquivo(input) {
+  if (input.files[0]) setArquivo(input.files[0]);
+}
+
+function setArquivo(f) {
+  arquivoSelecionado = f;
+  document.getElementById('fileName').textContent = '📄 ' + f.name;
+  document.getElementById('fileName').style.display = 'inline-block';
+  document.getElementById('btn').disabled = false;
+}
+
+async function importar() {
+  if (!arquivoSelecionado) return;
+  const btn = document.getElementById('btn');
+  const spinner = document.getElementById('spinner');
+  const resultado = document.getElementById('resultado');
+
+  btn.disabled = true;
+  btn.textContent = 'Importando...';
+  spinner.style.display = 'block';
+  resultado.style.display = 'none';
+
+  const form = new FormData();
+  form.append('arquivo', arquivoSelecionado);
+
+  try {
+    const res = await fetch('http://localhost/hma/atualizar_posicao.php', { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (data.status === 'OK') {
+      resultado.className = 'resultado ok';
+      resultado.innerHTML = `
+        <h3>✅ ${data.mensagem}</h3>
+        <div class="stat"><span class="k">Registros no arquivo</span><span class="v">${data.registros_lidos}</span></div>
+        <div class="stat"><span class="k">Produtos atualizados no MySQL</span><span class="v">${data.atualizados}</span></div>
+        <div class="stat"><span class="k">Não encontrados no banco</span><span class="v">${data.nao_encontrados}</span></div>
+        <div class="stat"><span class="k">Horário</span><span class="v">${data.horario}</span></div>
+      `;
+    } else {
+      resultado.className = 'resultado erro';
+      resultado.innerHTML = `<h3>❌ Erro</h3><p style="font-size:13px;color:#791F1F">${data.erro || 'Erro desconhecido'}</p>`;
+    }
+  } catch(e) {
+    resultado.className = 'resultado erro';
+    resultado.innerHTML = `<h3>❌ Erro de conexão</h3><p style="font-size:13px;color:#791F1F">Verifique se o XAMPP está rodando.</p>`;
+  }
+
+  resultado.style.display = 'block';
+  spinner.style.display = 'none';
+  btn.disabled = false;
+  btn.textContent = '📥 Importar Novamente';
+}
+</script>
+</body>
+</html>

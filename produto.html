@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Painel de Produto · Almoxarifado HMA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Variáveis ── */
+:root{
+  --blue-900:#0d1f4e;
+  --blue-800:#1a3270;
+  --blue-700:#1e3f8f;
+  --blue-600:#2454b8;
+  --blue-500:#2e6be6;
+  --blue-400:#5b8ef0;
+  --blue-100:#dce8fd;
+  --blue-50:#f0f5ff;
+  --green:#10b981;
+  --yellow:#f59e0b;
+  --orange:#ea580c;
+  --red:#dc2626;
+  --white:#ffffff;
+  --gray-50:#f8fafc;
+  --gray-100:#f1f5f9;
+  --gray-200:#e2e8f0;
+  --gray-500:#64748b;
+  --gray-700:#334155;
+  --gray-900:#0f172a;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 16px rgba(14,30,89,.12);
+  --shadow-lg:0 8px 32px rgba(14,30,89,.16);
+  --radius-sm:8px;
+  --radius-md:14px;
+  --radius-lg:20px;
+}
+
+/* ── Base ── */
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--blue-50);
+  color:var(--gray-900);
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* ── Marca d'água ── */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 50%,
+      rgba(255,255,255,.85) 0%,
+      rgba(240,245,255,.75) 100%),
+    url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Hospital_Federal_do_Andar%C3%A1%C3%AD.jpg/640px-Hospital_Federal_do_Andar%C3%A1%C3%AD.jpg')
+    center/cover no-repeat;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Topo colorido ── */
+.top-bar{
+  background:linear-gradient(135deg,var(--blue-900) 0%,var(--blue-700) 100%);
+  padding:14px 18px 12px;
+  position:relative;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  box-shadow:0 2px 12px rgba(0,0,0,.25);
+}
+.top-bar .logo-circle{
+  width:44px;height:44px;
+  border-radius:50%;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  border:2px solid rgba(255,255,255,.25);
+}
+.top-bar .title-block{line-height:1.25}
+.top-bar .title-main{
+  font-size:14px;font-weight:800;color:#fff;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.top-bar .title-sub{font-size:11px;color:rgba(255,255,255,.7);font-weight:500}
+
+/* ── Conteúdo ── */
+.wrap{
+  max-width:680px;margin:0 auto;
+  padding:16px 14px 32px;
+  position:relative;z-index:1;
+}
+
+/* ── Loading / Erro ── */
+#loading,#error{
+  text-align:center;padding:80px 20px;
+  position:relative;z-index:1;
+}
+#error{display:none;color:var(--red)}
+.spinner{
+  width:40px;height:40px;
+  border:4px solid var(--blue-100);
+  border-top-color:var(--blue-500);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-size:14px;color:var(--blue-600);font-weight:600}
+#content{display:none}
+
+/* ── Card produto (cabeçalho) ── */
+.card-header{
+  background:var(--white);
+  border-radius:var(--radius-lg);
+  padding:16px;
+  display:flex;gap:14px;
+  align-items:flex-start;
+  box-shadow:var(--shadow-md);
+  margin-bottom:12px;
+  border:1px solid var(--blue-100);
+  position:relative;
+  overflow:hidden;
+}
+.card-header::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--blue-600),var(--blue-400));
+}
+.product-photo{
+  width:88px;height:88px;flex-shrink:0;
+  border-radius:12px;
+  background:var(--blue-50);
+  border:2px solid var(--blue-100);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;font-size:36px;
+}
+.product-photo img{width:100%;height:100%;object-fit:cover}
+.product-meta{flex:1;min-width:0}
+.product-meta .badge-cod{
+  display:inline-block;
+  background:var(--blue-600);color:#fff;
+  font-size:11px;font-weight:800;
+  letter-spacing:.5px;padding:3px 10px;
+  border-radius:6px;margin-bottom:7px;
+}
+.product-meta .name{
+  font-size:15px;font-weight:800;
+  line-height:1.3;color:var(--gray-900);
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.product-meta .tag-row{display:flex;gap:6px;flex-wrap:wrap}
+.tag{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;
+  text-transform:uppercase;letter-spacing:.3px;
+}
+.tag-grupo{background:var(--blue-100);color:var(--blue-700)}
+.tag-tipo{background:#f1f5f9;color:var(--gray-700)}
+
+/* ── Banner de status ── */
+.status-banner{
+  border-radius:var(--radius-md);
+  padding:16px 18px;
+  margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow-md);
+  color:#fff;
+}
+.status-banner .left .label{font-size:11px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.status-banner .left .dias{font-size:36px;font-weight:900;line-height:1}
+.status-banner .right{text-align:center}
+.status-banner .right .icon{font-size:38px;line-height:1}
+.status-banner .right .status-txt{font-size:11px;font-weight:800;opacity:.9;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+.st-ok   {background:linear-gradient(135deg,#0d7a4e,#10b981)}
+.st-warn {background:linear-gradient(135deg,#b45309,#f59e0b)}
+.st-crit {background:linear-gradient(135deg,#9a3412,#ea580c)}
+.st-rupt {background:linear-gradient(135deg,#991b1b,#dc2626)}
+
+/* ── Grid indicadores ── */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;margin-bottom:12px;
+}
+@media(min-width:440px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
+
+.stat-card{
+  background:var(--white);
+  border-radius:var(--radius-md);
+  padding:14px;
+  box-shadow:var(--shadow-sm);
+  border:1px solid var(--blue-100);
+  position:relative;overflow:hidden;
+}
+.stat-card::after{
+  content:'';position:absolute;
+  bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--blue-500),var(--blue-300,#93b8fa));
+  opacity:.5;
+}
+.stat-card .s-label{
+  font-size:10px;font-weight:700;
+  color:var(--blue-600);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:4px;
+}
+.stat-card .s-value{
+  font-size:20px;font-weight:900;color:var(--gray-900);line-height:1;
+}
+.stat-card .s-sub{font-size:10px;color:var(--gray-500);margin-top:3px}
+
+/* ── Seção genérica ── */
+.section{
+  background:var(--white);
+  border-radius:var(--radius-md);
+  padding:16px 18px;
+  margin-bottom:12px;
+  box-shadow:var(--shadow-sm);
+  border:1px solid var(--blue-100);
+}
+.section-title{
+  font-size:12px;font-weight:800;
+  color:var(--blue-700);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--blue-100);
+}
+.info-row{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:8px;padding:8px 0;
+  border-bottom:1px solid var(--gray-100);font-size:13px;
+}
+.info-row:last-child{border-bottom:none}
+.info-row .k{color:var(--gray-500);font-weight:600;flex-shrink:0}
+.info-row .v{font-weight:700;text-align:right;color:var(--gray-900);word-break:break-word}
+
+.spec-text{
+  font-size:13px;line-height:1.7;
+  color:var(--gray-700);
+  background:var(--blue-50);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  border-left:3px solid var(--blue-400);
+}
+
+/* ── Botão contagem ── */
+.btn-count{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:18px;
+  background:linear-gradient(135deg,var(--blue-700),var(--blue-500));
+  color:#fff;border:none;border-radius:var(--radius-md);
+  font-size:16px;font-weight:800;cursor:pointer;
+  text-decoration:none;
+  box-shadow:0 6px 20px rgba(36,84,184,.35);
+  transition:all .15s;
+  margin-bottom:12px;
+  letter-spacing:.3px;
+}
+.btn-count:active{transform:scale(.98);opacity:.92}
+
+/* ── Rodapé ── */
+.footer{
+  text-align:center;font-size:11px;
+  color:var(--gray-500);padding-top:4px;
+  line-height:1.6;
+}
+.footer strong{color:var(--blue-700)}
+
+/* ── Acordeões ── */
+.accordion{padding:0!important;overflow:hidden}
+.acc-header{
+  width:100%;background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  padding:13px 16px;text-align:left;font-family:inherit;
+  border-bottom:2px solid var(--blue-100);
+}
+.acc-header>span:first-child{
+  font-size:12px;font-weight:800;color:var(--blue-700);
+  text-transform:uppercase;letter-spacing:.5px;flex:1;
+}
+.acc-badge{font-size:10px;font-weight:700;color:var(--blue-400)}
+.acc-arrow{
+  font-size:14px;color:var(--blue-500);flex-shrink:0;
+  transition:transform .25s ease;display:inline-block;
+}
+.accordion.open .acc-arrow{transform:rotate(180deg)}
+.acc-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s ease;
+  padding:0 16px;
+}
+.accordion.open .acc-body{max-height:2000px;padding:0 16px 14px}
+.spec-row{
+  display:flex;gap:10px;padding:9px 0;
+  border-bottom:1px solid #f0f5ff;align-items:flex-start;
+}
+.spec-row:last-child{border-bottom:none}
+.spec-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.spec-label{font-size:9px;font-weight:700;color:var(--blue-600);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.spec-val{font-size:12px;font-weight:600;color:var(--gray-900);line-height:1.5}
+.spinner-sm{
+  width:22px;height:22px;border:3px solid var(--blue-100);
+  border-top-color:var(--blue-500);border-radius:50%;
+  animation:spin .7s linear infinite;margin:0 auto 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- Topo -->
+<div class="top-bar">
+  <div class="logo-circle">🏥</div>
+  <div class="title-block">
+    <div class="title-main">Hospital do Andaraí</div>
+    <div class="title-sub">Almoxarifado · Painel de Produto</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Carregando dados do produto…</p>
+  </div>
+  <div id="error">
+    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+    <div id="error-msg" style="font-size:16px;font-weight:700"></div>
+    <div style="font-size:13px;color:#64748b;margin-top:8px">Verifique o código na etiqueta ou consulte o almoxarifado.</div>
+  </div>
+  <div id="content">
+
+    <!-- Cabeçalho produto -->
+    <div class="card-header">
+      <div class="product-photo" id="product-photo">📦</div>
+      <div class="product-meta">
+        <div class="badge-cod" id="f-cod">--</div>
+        <div class="name" id="f-nome">--</div>
+        <div class="tag-row">
+          <span class="tag tag-grupo" id="f-grupo">--</span>
+          <span class="tag tag-tipo" id="f-tipo">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-banner" id="status-banner">
+      <div class="left">
+        <div class="label">Cobertura de Estoque</div>
+        <div class="dias" id="f-dias">--</div>
+        <div style="font-size:12px;opacity:.8;margin-top:2px">dias disponíveis</div>
+      </div>
+      <div class="right">
+        <div class="icon" id="f-icon">--</div>
+        <div class="status-txt" id="f-status-txt">--</div>
+      </div>
+    </div>
+
+    <!-- Indicadores -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="s-label">Estoque Total</div>
+        <div class="s-value" id="f-estoque">--</div>
+        <div class="s-sub">almox + pvax + trânsito</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Almoxarifado</div>
+        <div class="s-value" id="f-almox">--</div>
+        <div class="s-sub">unidades físicas</div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid #7c3aed">
+        <div class="s-label" style="color:#7c3aed">PVAX</div>
+        <div class="s-value" id="f-pvax">--</div>
+        <div class="s-sub">unid. PVAX</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Em Trânsito</div>
+        <div class="s-value" id="f-transito">--</div>
+        <div class="s-sub">a receber</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">CMM</div>
+        <div class="s-value" id="f-cmm">--</div>
+        <div class="s-sub">cons. médio mensal</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">CMD</div>
+        <div class="s-value" id="f-cmd">--</div>
+        <div class="s-sub">cons. médio diário</div>
+      </div>
+    </div>
+
+    <!-- Valores financeiros -->
+    <div class="section">
+      <div class="section-title">💰 Valores Financeiros</div>
+      <div class="info-row">
+        <span class="k">Valor Unitário</span>
+        <span class="v" id="f-valor-uni">--</span>
+      </div>
+      <div class="info-row">
+        <span class="k">Valor Total em Estoque</span>
+        <span class="v" id="f-valor-total">--</span>
+      </div>
+    </div>
+
+    <!-- Trânsito Detalhado -->
+    <div class="section accordion" id="acc-transito">
+      <button class="acc-header" onclick="toggleAcc('acc-transito')" aria-expanded="false">
+        <span>🚚 Em Trânsito — Detalhes</span>
+        <span class="acc-badge" id="acc-transito-badge"></span>
+        <span class="acc-arrow">▾</span>
+      </button>
+      <div class="acc-body" id="acc-transito-body">
+        <div id="transito-rows"><span style="color:#94a3b8;font-size:12px">Nenhum pedido em trânsito.</span></div>
+      </div>
+    </div>
+
+    <!-- Especificações Técnicas — colapsável com IA -->
+    <div class="section accordion" id="acc-spec">
+      <button class="acc-header" onclick="toggleAcc('acc-spec')" aria-expanded="false">
+        <span>📋 Especificações Técnicas</span>
+        <span class="acc-badge" id="acc-spec-badge"></span>
+        <span class="acc-arrow">▾</span>
+      </button>
+      <div class="acc-body" id="acc-spec-body">
+        <div id="spec-loading" style="text-align:center;padding:18px 0;color:#94a3b8;font-size:12px">
+          <div class="spinner-sm"></div>Carregando especificações técnicas via IA…
+        </div>
+        <div id="spec-rows" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Informações Adicionais — colapsável -->
+    <div class="section accordion" id="acc-info">
+      <button class="acc-header" onclick="toggleAcc('acc-info')" aria-expanded="false">
+        <span>ℹ️ Informações Adicionais</span>
+        <span class="acc-arrow">▾</span>
+      </button>
+      <div class="acc-body" id="acc-info-body">
+        <div class="info-row"><span class="k">Tipo de Compra</span><span class="v" id="f-tipo-compra">--</span></div>
+        <div class="info-row"><span class="k">Fornecedor</span><span class="v" id="f-fornecedor">--</span></div>
+        <div class="info-row"><span class="k">Pedido / OR</span><span class="v" id="f-pedido-or">--</span></div>
+        <div class="info-row"><span class="k">Observações</span><span class="v" id="f-obs">--</span></div>
+      </div>
+    </div>
+
+    <!-- Botão contagem -->
+    <a id="btn-contagem" class="btn-count" href="#" target="_blank" rel="noopener">
+      📝&nbsp; Registrar Contagem / Inventário
+    </a>
+
+    <div class="footer">
+      <strong>Hospital do Andaraí</strong> · Almoxarifado<br>
+      Dados em tempo real · <span id="f-hora"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Configuração ── */
+const FORMS_URL = 'https://forms.gle/SUBSTITUA_PELO_SEU_LINK_DO_FORMS';
+
+/* ── Banco de dados embutido (gerado automaticamente da planilha) ── */
+
+/* ── Banco fixo de especificações técnicas ── */
+const SPECS_BANCO={"02.01.001.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.01.005.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.02.001.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.002.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.003.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.004.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.005.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.006.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.007.1":{"categoria":"Injetável","material":"Aço inoxidável com proteção plástica","uso_clinico":"Aplicação de medicamentos injetáveis","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Descartar em coletor rígido após uso"},"02.02.008.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.009.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.013.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.014.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.015.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.016.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.017.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.018.1":{"categoria":"Acesso Venoso","material":"Teflon (PTFE) com agulha de aço","uso_clinico":"Acesso venoso periférico para infusão de soluções","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 72-96h e observar sinais de flebite"},"02.02.019.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.02.025.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.026.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.027.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.034.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.035.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.036.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.037.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.038.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.039.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.02.040.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.02.063.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.064.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.067.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.071.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.090.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.096.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.02.121.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.142.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.02.181.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.02.196.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.02.222.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.001.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.002.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.003.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.025.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.029.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.03.030.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.033.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.037.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.038.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.03.042.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.04.001.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.04.002.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.04.004.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.005.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.006.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.007.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.008.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.04.010.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.04.011.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.04.012.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.04.013.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.04.015.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.04.016.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.04.018.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.023.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.024.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.025.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.028.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.032.1":{"categoria":"Curativo Cirúrgico","material":"Algodão e viscose esterilizado","uso_clinico":"Campo cirúrgico, curativos e compressas","unidade_medida":"Unidade","armazenamento":"Área estéril, temperatura ambiente","cuidados":"Usar dentro da validade e manter embalagem fechada"},"02.04.035.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.04.041.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.05.010.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.05.024.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.05.056.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.05.131.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.05.140.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.05.141.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.05.144.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.06.030.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.06.057.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.06.058.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.06.059.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.06.060.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.06.061.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.06.062.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.06.063.1":{"categoria":"Curativo","material":"Algodão 100% com fios de algodão","uso_clinico":"Curativo, compressas e absorção de exsudatos","unidade_medida":"Pacote","armazenamento":"Local seco e esterilizado","cuidados":"Não reutilizar após contato com ferida"},"02.08.004.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.08.005.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.08.006.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.08.008.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.08.013.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.08.036.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.08.045.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.09.001.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.002.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.003.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.004.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.005.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.006.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.012.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.013.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.014.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.015.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.017.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.018.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.019.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.022.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.023.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.030.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.031.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.034.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.039.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.040.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.041.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.042.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.048.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.049.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.052.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.053.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.054.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.055.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.056.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.057.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.060.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.061.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.062.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.063.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.064.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.065.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.066.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.068.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.071.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.072.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.09.073.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"02.10.002.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.037.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.038.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.110.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.112.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.125.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.126.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.127.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.146.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.147.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.148.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.149.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.155.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.156.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.157.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.158.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.159.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.160.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.161.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.162.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.209.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.210.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.211.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.212.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.213.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.296.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.297.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.311.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.10.366.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.11.013.3":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.12.002.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.003.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.004.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.005.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.006.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.007.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.008.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.009.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.010.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.011.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.012.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.013.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.014.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.015.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.017.2":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.018.2":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.019.2":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.020.2":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.022.2":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.023.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.024.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.025.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.026.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.12.027.1":{"categoria":"EPI","material":"Látex natural ou nitrila","uso_clinico":"Proteção nas atividades assistenciais","unidade_medida":"Par/Caixa","armazenamento":"Local fresco e seco, longe de luz solar","cuidados":"Verificar integridade antes do uso"},"02.13.097.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.098.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.099.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.100.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.101.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.102.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.103.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.111.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.112.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.118.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.126.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.149.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.152.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.153.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.154.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.157.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.164.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.228.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.231.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.232.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.233.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.234.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.235.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.237.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.238.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.13.239.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.13.240.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.13.314.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.337.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.339.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.340.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.13.341.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.15.006.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.17.003.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.007.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.008.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.009.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.010.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.011.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.017.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.17.018.1":{"categoria":"Higiene","material":"Polímero superabsorvente e algodão","uso_clinico":"Absorção de incontinência urinária e fecal","unidade_medida":"Unidade","armazenamento":"Local seco","cuidados":"Trocar a cada 4h ou ao ficar saturada"},"02.18.009.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.035.1":{"categoria":"Drenagem","material":"PVC atóxico transparente","uso_clinico":"Coleta e mensuração de urina","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manter abaixo do nível da bexiga para evitar refluxo"},"02.19.046.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.047.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.048.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.055.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.056.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.19.057.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.20.025.3":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.21.002.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.003.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.004.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.005.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.006.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.007.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.008.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.009.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.016.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.017.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.018.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.019.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.024.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.026.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.035.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.036.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.21.037.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.22.145.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.22.197.1":{"categoria":"Curativo","material":"Algodão hidrófilo 100%","uso_clinico":"Limpeza de feridas e antissepsia","unidade_medida":"Rolo","armazenamento":"Local seco e limpo","cuidados":"Não reutilizar após uso em ferida"},"02.22.203.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"02.22.204.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"02.22.221.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.22.222.1":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.22.392.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.393.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.394.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.395.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.396.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.397.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.398.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.22.399.1":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.23.002.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.005.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.006.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.007.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.008.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.147.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.167.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.23.168.1":{"categoria":"Curativo","material":"Algodão crepado","uso_clinico":"Imobilização e curativo de membros","unidade_medida":"Rolo","armazenamento":"Local seco e arejado","cuidados":"Não reutilizar após contato com ferida"},"02.24.060.3":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.24.125.2":{"categoria":"Cirúrgico","material":"Aço inoxidável de alta qualidade","uso_clinico":"Incisões cirúrgicas e procedimentos invasivos","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Manusear com pinça — nunca com as mãos"},"02.26.011.3":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"02.27.041.1":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"03.07.001.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"03.07.003.1":{"categoria":"Injetável","material":"Polipropileno com pistão de borracha","uso_clinico":"Administração de medicamentos e coleta","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Uso único — descartar após utilização"},"08.01.001.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"08.01.002.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"08.01.003.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"08.03.324.1":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"08.03.332.2":{"categoria":"EPI Respiratório","material":"Polipropileno não tecido","uso_clinico":"Proteção respiratória e barreira de contágio","unidade_medida":"Unidade","armazenamento":"Local seco, longe de umidade","cuidados":"Substituir quando úmida ou danificada"},"08.03.437.3":{"categoria":"Infusão","material":"PVC atóxico","uso_clinico":"Administração de soluções parenterais","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar a cada 24-72h conforme protocolo"},"08.03.543.3":{"categoria":"Drenagem/Sondagem","material":"Silicone ou PVC","uso_clinico":"Drenagem vesical ou gavagem","unidade_medida":"Unidade","armazenamento":"Temperatura ambiente","cuidados":"Trocar conforme protocolo e fixar adequadamente"},"08.04.462.1":{"categoria":"Curativo Cirúrgico","material":"Algodão e viscose esterilizado","uso_clinico":"Campo cirúrgico, curativos e compressas","unidade_medida":"Unidade","armazenamento":"Área estéril, temperatura ambiente","cuidados":"Usar dentro da validade e manter embalagem fechada"},"08.04.463.1":{"categoria":"Curativo Cirúrgico","material":"Algodão e viscose esterilizado","uso_clinico":"Campo cirúrgico, curativos e compressas","unidade_medida":"Unidade","armazenamento":"Área estéril, temperatura ambiente","cuidados":"Usar dentro da validade e manter embalagem fechada"},"08.04.464.1":{"categoria":"Curativo Cirúrgico","material":"Algodão e viscose esterilizado","uso_clinico":"Campo cirúrgico, curativos e compressas","unidade_medida":"Unidade","armazenamento":"Área estéril, temperatura ambiente","cuidados":"Usar dentro da validade e manter embalagem fechada"},"08.04.465.1":{"categoria":"Curativo Cirúrgico","material":"Algodão e viscose esterilizado","uso_clinico":"Campo cirúrgico, curativos e compressas","unidade_medida":"Unidade","armazenamento":"Área estéril, temperatura ambiente","cuidados":"Usar dentro da validade e manter embalagem fechada"}};
+
+/* ── URL da API MySQL (ajuste para seu servidor) ── */
+const API_URL = 'https://crisply-bountiful-treason.ngrok-free.dev/hma/api_produto.php';
+// Quando publicar na internet, troque por ex:
+// const API_URL = 'https://seudominio.com.br/hma/api_produto.php';
+
+// Banco carregado via API MySQL
+
+/* ── Inicialização ── */
+const params = new URLSearchParams(location.search);
+const codigoBruto = (params.get('cod') || '').trim();
+
+const $ = id => document.getElementById(id);
+const set = (id, val) => { const el=$(id); if(el) el.textContent = val||'—'; };
+
+function showError(msg) {
+  $('loading').style.display = 'none';
+  $('error').style.display = 'block';
+  $('error-msg').textContent = msg;
+}
+
+if (!codigoBruto) {
+  showError('Nenhum código informado na URL (?cod=…).');
+} else {
+  buscarProduto();
+}
+
+async function buscarProduto() {
+  try {
+    const res = await fetch(API_URL + '?cod=' + encodeURIComponent(codigoBruto), {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+        'Accept': 'application/json'
+      }
+    });
+    const p = await res.json();
+    if (p.erro) { showError(p.erro); return; }
+    renderProduto(p);
+  } catch(e) {
+    showError('O programa encontra-se temporariamente desativado em razão de limitações orçamentárias. A eventual revisão da remuneração deste colaborador poderá contribuir significativamente para a superação desse cenário.');
+  }
+}
+
+function norm(s){ return String(s||'').trim().toUpperCase(); }
+function num(s){ return parseFloat(String(s||'0').replace(/[^0-9.,]/g,'').replace(',','.')) || 0; }
+function fmtNum(n){ return n.toLocaleString('pt-BR'); }
+
+function renderProduto(p) {
+  // Dados recebidos da API MySQL
+
+  /* Cabeçalho */
+  set('f-cod',   p.cod);
+  set('f-nome',  p.produto || 'Produto sem descrição');
+  set('f-grupo', p.grupo);
+  set('f-tipo',  p.tipo || 'GRADE');
+
+  /* Foto (se existir campo foto no banco) */
+  if (p.foto && p.foto.startsWith('http')) {
+    $('product-photo').innerHTML =
+      `<img src="${p.foto}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
+  }
+
+  /* Indicadores numéricos */
+  const dias     = num(p.saldo_dias);
+  const almox    = num(p.almoxarifado);
+  const pvax     = num(p.estoque_pvax);
+  const transito = num(p.transito);
+  const estoque  = almox + pvax + transito;
+  const cmm      = num(p.cmm);
+  const cmd      = num(p.cmd);
+
+  set('f-dias',     fmtNum(dias));
+  set('f-estoque',  fmtNum(estoque));
+  set('f-almox',    fmtNum(almox));
+  set('f-pvax',     fmtNum(pvax));
+  set('f-cmm',      fmtNum(cmm));
+  set('f-cmd',      fmtNum(cmd));
+  set('f-transito', fmtNum(transito));
+
+  /* Valores financeiros */
+  set('f-valor-uni',   p.valor_uni   || '—');
+  set('f-valor-total', p.total       || '—');
+
+  /* Trânsito detalhado */
+  const transitoEl    = document.getElementById('transito-rows');
+  const transitoBadge = document.getElementById('acc-transito-badge');
+  const transitoQtd   = num(p.transito);
+  const transitoPedido    = (p.transito_pedido    || '').trim();
+  const transitoFornecedor= (p.transito_fornecedor|| '').trim();
+
+  if (transitoQtd > 0) {
+    transitoBadge.textContent = fmtNum(transitoQtd) + ' un.';
+    transitoEl.innerHTML = `
+      <div class="info-row">
+        <span class="k">Quantidade</span>
+        <span class="v" style="color:#2454b8;font-size:16px;font-weight:900">${fmtNum(transitoQtd)} unidades</span>
+      </div>
+      ${transitoPedido ? `<div class="info-row"><span class="k">Nº Pedido</span><span class="v">${transitoPedido}</span></div>` : ''}
+      ${transitoFornecedor ? `<div class="info-row"><span class="k">Fornecedor</span><span class="v">${transitoFornecedor}</span></div>` : ''}
+    `;
+  } else {
+    transitoBadge.textContent = '';
+    transitoEl.innerHTML = '<span style="color:#94a3b8;font-size:12px">Nenhum pedido em trânsito.</span>';
+  }
+
+  /* Especificações */
+  set('f-spec', p.produto);
+
+  /* Infos adicionais */
+  set('f-tipo-compra', p.tipo);
+  set('f-fornecedor',  p.fornecedor);
+  const pedOr = [p.pedido, p.or_].filter(x=>x&&x.trim()).join(' / ');
+  set('f-pedido-or', pedOr || '—');
+  set('f-obs', p.obs || '—');
+
+  /* Status (cobertura) */
+  const banner = $('status-banner');
+  let cls, txt, icon;
+  if (dias <= 0)       { cls='st-rupt'; txt='RUPTURA';  icon='🔴'; }
+  else if (dias < 15)  { cls='st-crit'; txt='CRÍTICO';  icon='🟠'; }
+  else if (dias < 30)  { cls='st-warn'; txt='ATENÇÃO';  icon='🟡'; }
+  else                 { cls='st-ok';   txt='SAUDÁVEL'; icon='🟢'; }
+  banner.classList.add(cls);
+  set('f-icon',       icon);
+  set('f-status-txt', txt);
+
+  /* Botão Forms */
+  $('btn-contagem').href = FORMS_URL;
+
+  /* Hora */
+  const agora = new Date();
+  set('f-hora', `Consultado às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} de ${agora.toLocaleDateString('pt-BR')}`);
+
+  /* Exibir */
+  $('loading').style.display = 'none';
+  $('content').style.display = 'block';
+
+  /* Carregar specs via IA em background */
+  carregarSpecs(p);
+}
+
+/* ── Acordeões ── */
+function toggleAcc(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  const btn = el.querySelector('.acc-header');
+  btn.setAttribute('aria-expanded', el.classList.contains('open'));
+}
+
+/* ── Especificações via banco fixo + API fallback ── */
+const specCache = {};
+const SPECS_URL = API_URL.replace('api_produto.php', 'api_specs.php');
+
+async function carregarSpecs(p) {
+  if (specCache[p.cod]) { renderSpecs(specCache[p.cod]); return; }
+
+  // 1. Tentar banco fixo embutido
+  if (typeof SPECS_BANCO !== 'undefined' && SPECS_BANCO[p.cod]) {
+    specCache[p.cod] = SPECS_BANCO[p.cod];
+    renderSpecs(SPECS_BANCO[p.cod]);
+    return;
+  }
+
+  // 2. Tentar API local via ngrok
+  try {
+    const res = await fetch(SPECS_URL + '?cod=' + encodeURIComponent(p.cod) + '&produto=' + encodeURIComponent(p.produto) + '&grupo=' + encodeURIComponent(p.grupo || ''), {
+      headers: { 'ngrok-skip-browser-warning': 'true', 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (data && !data.erro) {
+      specCache[p.cod] = data;
+      renderSpecs(data);
+      return;
+    }
+  } catch(e) {}
+
+  document.getElementById('spec-loading').innerHTML = '<span style="color:#94a3b8;font-size:12px">Especificações não disponíveis.</span>';
+}
+
+function renderSpecs(specs) {
+  const rows = [
+    {icon:'🏷️', label:'Categoria',       val: specs.categoria},
+    {icon:'🔬', label:'Material',         val: specs.material},
+    {icon:'📐', label:'Dimensões',        val: specs.dimensoes},
+    {icon:'🩺', label:'Uso Clínico',      val: specs.uso_clinico},
+    {icon:'📦', label:'Apresentação',     val: specs.apresentacao},
+    {icon:'📏', label:'Unid. de Medida',  val: specs.unidade_medida},
+    {icon:'📅', label:'Validade',         val: specs.validade ? specs.validade+' meses' : null},
+    {icon:'🌡️', label:'Armazenamento',   val: specs.armazenamento},
+    {icon:'📋', label:'Norma Técnica',    val: specs.norma_tecnica},
+    {icon:'⚠️', label:'Cuidado',         val: specs.cuidados},
+  ].filter(r => r.val && r.val.trim() && r.val !== 'N/A' && r.val !== 'Não aplicável');
+
+  const container = document.getElementById('spec-rows');
+  const loading   = document.getElementById('spec-loading');
+  const badge     = document.getElementById('acc-spec-badge');
+
+  if (rows.length === 0) {
+    loading.innerHTML = '<span style="color:#94a3b8;font-size:12px">Sem especificações detalhadas disponíveis.</span>';
+    return;
+  }
+
+  container.innerHTML = rows.map(r => `
+    <div class="spec-row">
+      <span class="spec-icon">${r.icon}</span>
+      <div>
+        <div class="spec-label">${r.label}</div>
+        <div class="spec-val">${r.val}</div>
+      </div>
+    </div>`).join('');
+
+  loading.style.display = 'none';
+  container.style.display = 'block';
+  if (badge) badge.textContent = `${rows.length} itens`;
+}
+</script>
+</body>
+</html>
