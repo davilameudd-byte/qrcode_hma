@@ -339,7 +339,7 @@ body::before{
   <div id="error">
     <div style="font-size:48px;margin-bottom:12px">⚠️</div>
     <div id="error-msg" style="font-size:16px;font-weight:700"></div>
-    <div style="font-size:13px;color:#64748b;margin-top:8px">Verifique o código na etiqueta ou consulte o almoxarifado.</div>
+    <div id="error-sub" style="font-size:13px;color:#64748b;margin-top:8px">Verifique o código na etiqueta ou consulte o almoxarifado.</div>
   </div>
   <div id="content">
 
@@ -496,10 +496,11 @@ const codigoBruto = (params.get('cod') || '').trim();
 const $ = id => document.getElementById(id);
 const set = (id, val) => { const el=$(id); if(el) el.textContent = val||'—'; };
 
-function showError(msg) {
+function showError(msg, sub) {
   $('loading').style.display = 'none';
   $('error').style.display = 'block';
   $('error-msg').textContent = msg;
+  if (sub) $('error-sub').textContent = sub;
 }
 
 if (!codigoBruto) {
@@ -521,7 +522,10 @@ async function buscarProduto() {
     if (p.erro) { showError(p.erro); return; }
     renderProduto(p);
   } catch(e) {
-    showError('O programa encontra-se temporariamente desativado em razão de limitações orçamentárias. A eventual revisão da remuneração deste colaborador poderá contribuir significativamente para a superação desse cenário.');
+    showError(
+      'Sistema temporariamente indisponível.',
+      'O servidor do almoxarifado está desligado ou fora do ar no momento. Tente novamente em alguns minutos.'
+    );
   }
 }
 
