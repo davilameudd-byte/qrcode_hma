@@ -483,6 +483,12 @@ const especDetalhadasPromise = fetch(ESPEC_URL)
   .then(r => r.ok ? r.json() : {})
   .catch(() => ({}));
 
+/* ── Fotos reais dos produtos (catálogo HRRC) ── */
+const FOTOS_URL = 'fotos/manifest.json';
+const fotosManifestPromise = fetch(FOTOS_URL)
+  .then(r => r.ok ? r.json() : {})
+  .catch(() => ({}));
+
 /* ── Inicialização ── */
 const params = new URLSearchParams(location.search);
 const codigoBruto = (params.get('cod') || '').trim();
@@ -532,11 +538,17 @@ function renderProduto(p) {
   set('f-grupo', p.grupo);
   set('f-tipo',  p.tipo || 'GRADE');
 
-  /* Foto (se existir campo foto no banco) */
-  if (p.foto && p.foto.startsWith('http')) {
-    $('product-photo').innerHTML =
-      `<img src="${p.foto}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
-  }
+  /* Foto: 1º prioridade catálogo real (por código), 2º campo foto do banco */
+  fotosManifestPromise.then(manifest => {
+    const arquivo = manifest && manifest[p.cod];
+    if (arquivo) {
+      $('product-photo').innerHTML =
+        `<img src="fotos/${arquivo}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
+    } else if (p.foto && p.foto.startsWith('http')) {
+      $('product-photo').innerHTML =
+        `<img src="${p.foto}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
+    }
+  });
 
   /* Indicadores numéricos */
   const dias     = num(p.saldo_dias);
