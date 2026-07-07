@@ -148,13 +148,6 @@ body::before{
   letter-spacing:.5px;padding:3px 10px;
   border-radius:6px;margin-bottom:7px;
 }
-.product-meta .badge-sigma{
-  display:inline-block;
-  background:#e2e8f0;color:#475569;
-  font-size:11px;font-weight:800;
-  letter-spacing:.5px;padding:3px 10px;
-  border-radius:6px;margin-bottom:7px;margin-left:6px;
-}
 .product-meta .name{
   font-size:15px;font-weight:800;
   line-height:1.3;color:var(--gray-900);
@@ -347,7 +340,6 @@ body::before{
       <div class="product-photo" id="product-photo">📦</div>
       <div class="product-meta">
         <div class="badge-cod" id="f-cod">--</div>
-        <span class="badge-sigma" id="f-sigma" style="display:none"></span>
         <div class="name" id="f-nome">--</div>
         <div class="tag-row">
           <span class="tag tag-grupo" id="f-grupo">--</span>
@@ -501,7 +493,8 @@ if (!codigoBruto) {
 
 async function buscarProduto() {
   try {
-    const res = await fetch(API_URL + '?cod=' + encodeURIComponent(codigoBruto), {
+    const res = await fetch(API_URL + '?cod=' + encodeURIComponent(codigoBruto) + '&_=' + Date.now(), {
+      cache: 'no-store',
       headers: {
         'ngrok-skip-browser-warning': 'true',
         'Accept': 'application/json'
@@ -613,11 +606,6 @@ async function carregarSpecs(p) {
     const d = especDetalhadas[p.cod];
     const specs = { especificacao_completa: d.espec, codigo_sigma: d.sigma };
     specCache[p.cod] = specs;
-    if (d.sigma) {
-      const sigmaEl = document.getElementById('f-sigma');
-      sigmaEl.textContent = 'SIGMA ' + d.sigma;
-      sigmaEl.style.display = 'inline-block';
-    }
     renderSpecs(specs);
     return;
   }
@@ -648,7 +636,6 @@ async function carregarSpecs(p) {
 function renderSpecs(specs) {
   const rows = [
     {icon:'📄', label:'Especificação Completa', val: specs.especificacao_completa},
-    {icon:'🔢', label:'Código SIGMA',     val: specs.codigo_sigma},
     {icon:'🏷️', label:'Categoria',       val: specs.categoria},
     {icon:'🔬', label:'Material',         val: specs.material},
     {icon:'📐', label:'Dimensões',        val: specs.dimensoes},
