@@ -408,18 +408,6 @@ body::before{
       </div>
     </div>
 
-    <!-- Trânsito Detalhado -->
-    <div class="section accordion" id="acc-transito">
-      <button class="acc-header" onclick="toggleAcc('acc-transito')" aria-expanded="false">
-        <span>🚚 Em Trânsito — Detalhes</span>
-        <span class="acc-badge" id="acc-transito-badge"></span>
-        <span class="acc-arrow">▾</span>
-      </button>
-      <div class="acc-body" id="acc-transito-body">
-        <div id="transito-rows"><span style="color:#94a3b8;font-size:12px">Nenhum pedido em trânsito.</span></div>
-      </div>
-    </div>
-
     <!-- Especificações Técnicas — colapsável com IA -->
     <div class="section accordion" id="acc-spec">
       <button class="acc-header" onclick="toggleAcc('acc-spec')" aria-expanded="false">
@@ -445,6 +433,7 @@ body::before{
         <div class="info-row"><span class="k">Tipo de Compra</span><span class="v" id="f-tipo-compra">--</span></div>
         <div class="info-row"><span class="k">Fornecedor</span><span class="v" id="f-fornecedor">--</span></div>
         <div class="info-row"><span class="k">Pedido / OR</span><span class="v" id="f-pedido-or">--</span></div>
+        <div class="info-row"><span class="k">Saldo a Chegar</span><span class="v" id="f-saldo-transito">--</span></div>
         <div class="info-row"><span class="k">Observações</span><span class="v" id="f-obs">--</span></div>
       </div>
     </div>
@@ -476,6 +465,12 @@ const API_URL = 'https://crisply-bountiful-treason.ngrok-free.dev/hma/api_produt
 // const API_URL = 'https://seudominio.com.br/hma/api_produto.php';
 
 // Banco carregado via API MySQL
+
+/* ── Especificações detalhadas oficiais (SIGMA/ESPECIFICAÇÃO FINAL) ── */
+const ESPEC_URL = 'especificacoes.json';
+const especDetalhadasPromise = fetch(ESPEC_URL)
+  .then(r => r.ok ? r.json() : {})
+  .catch(() => ({}));
 
 /* ── Inicialização ── */
 const params = new URLSearchParams(location.search);
@@ -552,28 +547,6 @@ function renderProduto(p) {
   set('f-valor-uni',   p.valor_uni   || '—');
   set('f-valor-total', p.total       || '—');
 
-  /* Trânsito detalhado */
-  const transitoEl    = document.getElementById('transito-rows');
-  const transitoBadge = document.getElementById('acc-transito-badge');
-  const transitoQtd   = num(p.transito);
-  const transitoPedido    = (p.transito_pedido    || '').trim();
-  const transitoFornecedor= (p.transito_fornecedor|| '').trim();
-
-  if (transitoQtd > 0) {
-    transitoBadge.textContent = fmtNum(transitoQtd) + ' un.';
-    transitoEl.innerHTML = `
-      <div class="info-row">
-        <span class="k">Quantidade</span>
-        <span class="v" style="color:#2454b8;font-size:16px;font-weight:900">${fmtNum(transitoQtd)} unidades</span>
-      </div>
-      ${transitoPedido ? `<div class="info-row"><span class="k">Nº Pedido</span><span class="v">${transitoPedido}</span></div>` : ''}
-      ${transitoFornecedor ? `<div class="info-row"><span class="k">Fornecedor</span><span class="v">${transitoFornecedor}</span></div>` : ''}
-    `;
-  } else {
-    transitoBadge.textContent = '';
-    transitoEl.innerHTML = '<span style="color:#94a3b8;font-size:12px">Nenhum pedido em trânsito.</span>';
-  }
-
   /* Especificações */
   set('f-spec', p.produto);
 
@@ -582,6 +555,7 @@ function renderProduto(p) {
   set('f-fornecedor',  p.fornecedor);
   const pedOr = [p.pedido, p.or_].filter(x=>x&&x.trim()).join(' / ');
   set('f-pedido-or', pedOr || '—');
+  set('f-saldo-transito', transito > 0 ? (fmtNum(transito) + ' unidades a chegar') : 'Sem pedidos em trânsito');
   set('f-obs', p.obs || '—');
 
   /* Status (cobertura) */
@@ -625,14 +599,24 @@ const SPECS_URL = API_URL.replace('api_produto.php', 'api_specs.php');
 async function carregarSpecs(p) {
   if (specCache[p.cod]) { renderSpecs(specCache[p.cod]); return; }
 
-  // 1. Tentar banco fixo embutido
+  // 1. Especificação oficial detalhada (planilha SIGMA — ESPECIFICAÇÃO FINAL / SIGMA FINAL)
+  const especDetalhadas = await especDetalhadasPromise;
+  if (especDetalhadas && especDetalhadas[p.cod]) {
+    const d = especDetalhadas[p.cod];
+    const specs = { especificacao_completa: d.espec, codigo_sigma: d.sigma };
+    specCache[p.cod] = specs;
+    renderSpecs(specs);
+    return;
+  }
+
+  // 2. Tentar banco fixo embutido
   if (typeof SPECS_BANCO !== 'undefined' && SPECS_BANCO[p.cod]) {
     specCache[p.cod] = SPECS_BANCO[p.cod];
     renderSpecs(SPECS_BANCO[p.cod]);
     return;
   }
 
-  // 2. Tentar API local via ngrok
+  // 3. Tentar API local via ngrok
   try {
     const res = await fetch(SPECS_URL + '?cod=' + encodeURIComponent(p.cod) + '&produto=' + encodeURIComponent(p.produto) + '&grupo=' + encodeURIComponent(p.grupo || ''), {
       headers: { 'ngrok-skip-browser-warning': 'true', 'Accept': 'application/json' }
@@ -650,6 +634,8 @@ async function carregarSpecs(p) {
 
 function renderSpecs(specs) {
   const rows = [
+    {icon:'📄', label:'Especificação Completa', val: specs.especificacao_completa},
+    {icon:'🔢', label:'Código SIGMA',     val: specs.codigo_sigma},
     {icon:'🏷️', label:'Categoria',       val: specs.categoria},
     {icon:'🔬', label:'Material',         val: specs.material},
     {icon:'📐', label:'Dimensões',        val: specs.dimensoes},
