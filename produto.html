@@ -339,7 +339,7 @@ body::before{
   <div id="error">
     <div style="font-size:48px;margin-bottom:12px">⚠️</div>
     <div id="error-msg" style="font-size:16px;font-weight:700"></div>
-    <div style="font-size:13px;color:#64748b;margin-top:8px">Verifique o código na etiqueta ou consulte o almoxarifado.</div>
+    <div id="error-sub" style="font-size:13px;color:#64748b;margin-top:8px">Verifique o código na etiqueta ou consulte o almoxarifado.</div>
   </div>
   <div id="content">
 
@@ -496,10 +496,11 @@ const codigoBruto = (params.get('cod') || '').trim();
 const $ = id => document.getElementById(id);
 const set = (id, val) => { const el=$(id); if(el) el.textContent = val||'—'; };
 
-function showError(msg) {
+function showError(msg, sub) {
   $('loading').style.display = 'none';
   $('error').style.display = 'block';
   $('error-msg').textContent = msg;
+  if (sub) $('error-sub').textContent = sub;
 }
 
 if (!codigoBruto) {
@@ -521,7 +522,10 @@ async function buscarProduto() {
     if (p.erro) { showError(p.erro); return; }
     renderProduto(p);
   } catch(e) {
-    showError('O programa encontra-se temporariamente desativado em razão de limitações orçamentárias. A eventual revisão da remuneração deste colaborador poderá contribuir significativamente para a superação desse cenário.');
+    showError(
+      'Sistema temporariamente indisponível.',
+      'O servidor do almoxarifado está desligado ou fora do ar no momento. Tente novamente em alguns minutos.'
+    );
   }
 }
 
@@ -538,16 +542,36 @@ function renderProduto(p) {
   set('f-grupo', p.grupo);
   set('f-tipo',  p.tipo || 'GRADE');
 
-  /* Foto: 1º prioridade catálogo real (por código), 2º campo foto do banco */
+  /* Foto: 1º manifest do catálogo, 2º tenta extensões comuns pelo código (auto-atendimento),
+     3º campo foto do banco, 4º ícone padrão */
   fotosManifestPromise.then(manifest => {
-    const arquivo = manifest && manifest[p.cod];
-    if (arquivo) {
-      $('product-photo').innerHTML =
-        `<img src="fotos/${arquivo}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
-    } else if (p.foto && p.foto.startsWith('http')) {
-      $('product-photo').innerHTML =
-        `<img src="${p.foto}" alt="foto" onerror="this.parentElement.textContent='📦'">`;
+    const arquivoManifest = manifest && manifest[p.cod];
+    const candidatos = [];
+    if (arquivoManifest) candidatos.push('fotos/' + arquivoManifest);
+    ['jpg','jpeg','png','webp'].forEach(ext => {
+      const nome = `fotos/${p.cod}.${ext}`;
+      if (!candidatos.includes(nome)) candidatos.push(nome);
+    });
+
+    const el = document.createElement('img');
+    el.alt = 'foto';
+    const fallbackDb = (p.foto && p.foto.startsWith('http')) ? p.foto : null;
+
+    function tentar(i) {
+      if (i >= candidatos.length) {
+        if (fallbackDb) {
+          el.onerror = () => { $('product-photo').textContent = '📦'; };
+          el.src = fallbackDb;
+        } else {
+          $('product-photo').textContent = '📦';
+        }
+        return;
+      }
+      el.onerror = () => tentar(i + 1);
+      el.src = candidatos[i];
     }
+    el.onload = () => { $('product-photo').innerHTML = ''; $('product-photo').appendChild(el); };
+    tentar(0);
   });
 
   /* Indicadores numéricos */
