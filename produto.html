@@ -463,7 +463,8 @@ body::before{
 
 <script>
 /* ── Configuração ── */
-const FORMS_URL = 'https://forms.gle/SUBSTITUA_PELO_SEU_LINK_DO_FORMS';
+const FORMS_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfb0r1Orm_S6--UlJoLm3j0G9Osr1sFr0bYRZJsvwcQtGZJXA/viewform';
+const FORMS_ENTRY_PRODUTO = 'entry.43907473';
 
 /* ── Banco de dados embutido (gerado automaticamente da planilha) ── */
 
@@ -617,8 +618,8 @@ function renderProduto(p) {
   set('f-icon',       icon);
   set('f-status-txt', txt);
 
-  /* Botão Forms */
-  $('btn-contagem').href = FORMS_URL;
+  /* Botão Forms (com nome do produto pré-preenchido) */
+  $('btn-contagem').href = FORMS_URL + '?usp=pp_url&' + FORMS_ENTRY_PRODUTO + '=' + encodeURIComponent(p.produto || '');
 
   /* Hora */
   const agora = new Date();
