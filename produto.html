@@ -345,6 +345,40 @@ body::before{
 }
 .aviso-limitado .ic{font-size:20px;flex-shrink:0}
 .aviso-limitado b{display:block;font-size:13px;margin-bottom:2px}
+
+/* ── Card de Tabela de Diluição ── */
+.dil-name{font-size:14px;font-weight:800;color:var(--gray-900);line-height:1.3;margin-bottom:10px}
+.dil-badge-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.dil-badge{font-size:11px;font-weight:800;padding:5px 11px;border-radius:100px;letter-spacing:.2px}
+.dil-badge-via{background:var(--blue-600);color:#fff}
+.dil-badge-apres{background:var(--gray-100);color:var(--gray-700);font-weight:700}
+.dil-block{border-radius:var(--radius-md);border-left:4px solid transparent;padding:12px 14px;margin-bottom:10px}
+.dil-block:last-child{margin-bottom:0}
+.dil-block-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.dil-preparo{background:var(--blue-50);border-left-color:var(--blue-600)}
+.dil-preparo .dil-block-title{color:var(--blue-700)}
+.dil-prep-row{margin-bottom:9px}
+.dil-prep-row:last-child{margin-bottom:0}
+.dil-prep-label{font-size:10px;font-weight:700;color:var(--blue-600);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.dil-prep-val{font-size:13px;font-weight:600;color:var(--gray-900);line-height:1.5}
+.dil-dose-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.dil-dose-chip{background:var(--white);border:1px solid var(--blue-100);border-radius:10px;padding:8px 10px}
+.dil-dose-chip .k{font-size:9.5px;font-weight:800;color:var(--blue-600);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.dil-dose-chip .v{font-size:12.5px;font-weight:700;color:var(--gray-900);line-height:1.4}
+.dil-admin{background:#ecfdf5;border-left-color:var(--green)}
+.dil-admin .dil-block-title{color:#065f46}
+.dil-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dil-admin-cell .k{font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.dil-admin-cell .v{font-size:12.5px;font-weight:600;color:var(--gray-900);line-height:1.45}
+.dil-alerta{background:#fef2f2;border-left-color:var(--red)}
+.dil-alerta .dil-block-title{color:#991b1b}
+.dil-alerta-sub{margin-bottom:11px}
+.dil-alerta-sub:last-child{margin-bottom:0}
+.dil-alerta-label{font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.dil-incompat-chips{display:flex;flex-wrap:wrap;gap:5px}
+.dil-incompat-chip{background:#fff;border:1px solid #fecaca;color:#991b1b;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.dil-orient-text{font-size:13px;font-weight:600;color:#7f1d1d;line-height:1.55;background:#fff;border:1px solid #fecaca;border-radius:10px;padding:10px 11px}
+.dil-fonte{font-size:10px;color:var(--gray-500);line-height:1.5;margin-top:12px}
 </style>
 </head>
 <body>
@@ -506,9 +540,6 @@ body::before{
       </button>
       <div class="acc-body" id="acc-diluicao-body">
         <div id="diluicao-rows"></div>
-        <div style="font-size:10.5px;color:var(--gray-500);margin-top:10px;line-height:1.5">
-          Fonte: Manual de Orientações para Preparo e Administração de Medicamentos Injetáveis (SES-DF). Não substitui bula, protocolo institucional ou avaliação farmacêutica/clínica individual.
-        </div>
       </div>
     </div>
 
@@ -927,25 +958,86 @@ async function carregarTabelaDiluicao(p) {
   const d = diluicao && diluicao[p.cod];
   if (!d) return; // sem dados de diluição para este código — acordeão permanece oculto
 
-  const campos = [
-    { label: 'Apresentação',            val: d.apresentacao },
-    { label: 'Reconstituição',          val: d.reconstituicao },
-    { label: 'Diluentes Compatíveis',   val: d.diluentes_compativeis },
-    { label: 'Diluição',                val: d.diluicao },
-    { label: 'Via de Administração',    val: d.via_administracao },
-    { label: 'Tempo de Infusão',        val: d.tempo_infusao },
-    { label: 'Estabilidade',            val: d.estabilidade },
-    { label: 'Incompatibilidade (Y-site)', val: d.incompatibilidade_y },
-    { label: 'Orientações Gerais',      val: d.orientacoes_gerais },
-  ].filter(c => c.val && c.val.trim());
-
-  document.getElementById('diluicao-rows').innerHTML = campos.map(c => `
-    <div class="info-row" style="display:block;padding:9px 0">
-      <span class="k" style="display:block;margin-bottom:3px">${c.label}</span>
-      <span class="v" style="display:block;text-align:left;font-weight:600;font-size:13px;line-height:1.5">${c.val}</span>
-    </div>`).join('');
-
+  document.getElementById('diluicao-rows').innerHTML = renderCardDiluicao(d);
   document.getElementById('acc-diluicao').style.display = 'block';
+}
+
+/* Detecta padrões tipo "Adulto: ... Pediatria: ..." e separa em chips lado a lado */
+function splitDoses(texto) {
+  if (!texto) return null;
+  const partes = texto.split(/(?=(?:Adultos?|Pediatria|Crian[çc]as?|Neonatos?|Lactentes?)\s*:)/i)
+    .map(s => s.trim()).filter(Boolean);
+  if (partes.length < 2) return null;
+  return partes.map(parte => {
+    const m = parte.match(/^([^:]+):\s*(.+)$/s);
+    return m ? { rotulo: m[1].trim(), valor: m[2].trim() } : null;
+  }).filter(Boolean);
+}
+
+function renderCardDiluicao(d) {
+  // Badges: uma por via de administração detectada + apresentação
+  const vias = (d.via_administracao || '')
+    .split(/[,;]|(?:\se\s)|\/|\(/)
+    .map(v => v.trim())
+    .filter(v => v && v.length <= 30 && !/^\d/.test(v))
+    .slice(0, 4);
+
+  const badges = vias.map(v => `<span class="dil-badge dil-badge-via">${v}</span>`).join('')
+    + (d.apresentacao ? `<span class="dil-badge dil-badge-apres">${d.apresentacao}</span>` : '');
+
+  // Bloco Preparo
+  const doseSplit = splitDoses(d.diluicao);
+  const diluicaoHtml = doseSplit
+    ? `<div class="dil-dose-split">${doseSplit.map(x => `
+        <div class="dil-dose-chip"><div class="k">${x.rotulo}</div><div class="v">${x.valor}</div></div>`).join('')}</div>`
+    : (d.diluicao ? `<div class="dil-prep-val">${d.diluicao}</div>` : '');
+
+  const prepRows = [];
+  if (d.reconstituicao) prepRows.push(`<div class="dil-prep-row"><div class="dil-prep-label">Reconstituição</div><div class="dil-prep-val">${d.reconstituicao}</div></div>`);
+  if (d.diluentes_compativeis) prepRows.push(`<div class="dil-prep-row"><div class="dil-prep-label">Diluentes Compatíveis</div><div class="dil-prep-val">${d.diluentes_compativeis}</div></div>`);
+  if (d.diluicao) prepRows.push(`<div class="dil-prep-row"><div class="dil-prep-label">Diluição</div>${diluicaoHtml}</div>`);
+
+  const blocoPreparo = prepRows.length ? `
+    <div class="dil-block dil-preparo">
+      <div class="dil-block-title">💧 Preparo</div>
+      ${prepRows.join('')}
+    </div>` : '';
+
+  // Bloco Administração
+  const adminCells = [];
+  if (d.tempo_infusao) adminCells.push(`<div class="dil-admin-cell"><div class="k">Tempo de Infusão</div><div class="v">${d.tempo_infusao}</div></div>`);
+  if (d.estabilidade) adminCells.push(`<div class="dil-admin-cell"><div class="k">Estabilidade</div><div class="v">${d.estabilidade}</div></div>`);
+
+  const blocoAdmin = adminCells.length ? `
+    <div class="dil-block dil-admin">
+      <div class="dil-block-title">⏱️ Administração</div>
+      <div class="dil-admin-grid">${adminCells.join('')}</div>
+    </div>` : '';
+
+  // Bloco Alerta
+  const alertaSubs = [];
+  if (d.incompatibilidade_y) {
+    const chips = d.incompatibilidade_y.split(',').map(s => s.trim()).filter(Boolean)
+      .map(s => `<span class="dil-incompat-chip">${s}</span>`).join('');
+    alertaSubs.push(`<div class="dil-alerta-sub"><div class="dil-alerta-label">🚫 Incompatibilidade (Y-site)</div><div class="dil-incompat-chips">${chips}</div></div>`);
+  }
+  if (d.orientacoes_gerais) {
+    alertaSubs.push(`<div class="dil-alerta-sub"><div class="dil-alerta-label">🔺 Orientações Gerais</div><div class="dil-orient-text">${d.orientacoes_gerais}</div></div>`);
+  }
+  const blocoAlerta = alertaSubs.length ? `
+    <div class="dil-block dil-alerta">
+      <div class="dil-block-title">⚠️ Alerta Crítico</div>
+      ${alertaSubs.join('')}
+    </div>` : '';
+
+  return `
+    <div class="dil-name">${d.medicamento || ''}</div>
+    <div class="dil-badge-row" style="margin-bottom:14px">${badges}</div>
+    ${blocoPreparo}
+    ${blocoAdmin}
+    ${blocoAlerta}
+    <div class="dil-fonte">Fonte: ${d.fonte || 'SES-DF, Manual de Orientações para Preparo e Administração de Medicamentos Injetáveis'}. Não substitui bula, protocolo institucional ou avaliação farmacêutica/clínica individual.</div>
+  `;
 }
 </script>
 </body>
