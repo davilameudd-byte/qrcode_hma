@@ -318,6 +318,22 @@ body::before{
   border-top-color:var(--blue-500);border-radius:50%;
   animation:spin .7s linear infinite;margin:0 auto 8px;
 }
+
+/* ── Guia Farmacêutico ── */
+.farma-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.farma-tag{
+  font-size:10px;font-weight:800;padding:4px 10px;border-radius:100px;
+  text-transform:uppercase;letter-spacing:.3px;display:inline-flex;align-items:center;gap:5px;
+}
+.farma-tag .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.farma-tag.danger{background:#fee2e2;color:#991b1b}
+.farma-tag.danger .dot{background:var(--red)}
+.farma-tag.warn{background:#fef3c7;color:#92400e}
+.farma-tag.warn .dot{background:var(--yellow)}
+.farma-tag.safe{background:#d1fae5;color:#065f46}
+.farma-tag.safe .dot{background:var(--green)}
+.farma-tag.neutral{background:var(--gray-100);color:var(--gray-700)}
+.farma-tag.neutral .dot{background:var(--gray-500)}
 </style>
 </head>
 <body>
@@ -449,6 +465,19 @@ body::before{
       </div>
     </div>
 
+    <!-- Guia Farmacêutico — só aparece para medicamentos com dados em farmacoterapia.json -->
+    <div class="section accordion" id="acc-farma" style="display:none">
+      <button class="acc-header" onclick="toggleAcc('acc-farma')" aria-expanded="false">
+        <span>💊 Guia Farmacêutico</span>
+        <span class="acc-badge" id="acc-farma-badge"></span>
+        <span class="acc-arrow">▾</span>
+      </button>
+      <div class="acc-body" id="acc-farma-body">
+        <div class="farma-badges" id="farma-badges"></div>
+        <div id="farma-rows"></div>
+      </div>
+    </div>
+
     <!-- Botão contagem -->
     <a id="btn-contagem" class="btn-count" href="#" target="_blank" rel="noopener">
       📝&nbsp; Registrar Contagem / Inventário
@@ -481,6 +510,12 @@ const API_URL = 'https://crisply-bountiful-treason.ngrok-free.dev/hma/api_produt
 /* ── Especificações detalhadas oficiais (SIGMA/ESPECIFICAÇÃO FINAL) ── */
 const ESPEC_URL = 'especificacoes.json';
 const especDetalhadasPromise = fetch(ESPEC_URL)
+  .then(r => r.ok ? r.json() : {})
+  .catch(() => ({}));
+
+/* ── Guia Farmacêutico (dados clínicos de medicamentos) ── */
+const FARMACO_URL = 'farmacoterapia.json';
+const farmacoPromise = fetch(FARMACO_URL)
   .then(r => r.ok ? r.json() : {})
   .catch(() => ({}));
 
@@ -631,6 +666,9 @@ function renderProduto(p) {
 
   /* Carregar specs via IA em background */
   carregarSpecs(p);
+
+  /* Carregar Guia Farmacêutico (só aparece se o produto for medicamento) */
+  carregarGuiaFarmaceutico(p);
 }
 
 /* ── Acordeões ── */
@@ -722,6 +760,78 @@ function renderSpecs(specs) {
   loading.style.display = 'none';
   container.style.display = 'block';
   if (badge) badge.textContent = `${rows.length} itens`;
+}
+
+/* ── Guia Farmacêutico ── */
+async function carregarGuiaFarmaceutico(p) {
+  const farmaco = await farmacoPromise;
+  const dados = farmaco && farmaco[p.cod];
+  if (!dados) return; // não é medicamento com dados no guia — acordeão permanece oculto
+
+  document.getElementById('acc-farma').style.display = 'block';
+  renderGuiaFarmaceutico(dados);
+}
+
+function renderGuiaFarmaceutico(d) {
+  /* Badges de alerta rápido */
+  const badges = [];
+
+  if (d.controlado && !/^N[ÃA]O/i.test(d.controlado.trim())) {
+    badges.push({ cls: 'danger', txt: '⚠ ' + d.controlado });
+  }
+  if (d.gravidez) {
+    const g = d.gravidez.toUpperCase();
+    let cls = 'neutral';
+    if (/CATEGORIA\s*[DX]/.test(g)) cls = 'danger';
+    else if (/CATEGORIA\s*C/.test(g)) cls = 'warn';
+    else if (/CATEGORIA\s*[AB]/.test(g)) cls = 'safe';
+    const catMatch = g.match(/CATEGORIA\s*[A-DX]/);
+    badges.push({ cls, txt: '🤰 Gravidez ' + (catMatch ? catMatch[0] : '') });
+  }
+  if (d.amamentacao) {
+    const a = d.amamentacao.toUpperCase();
+    let cls = 'neutral';
+    if (/N[ÃA]O|INCOMPAT[ÍI]VEL|CONTRAINDICAD/.test(a)) cls = 'danger';
+    else if (/COMPAT[ÍI]VEL/.test(a)) cls = 'safe';
+    badges.push({ cls, txt: '🍼 Amamentação: ' + d.amamentacao });
+  }
+
+  document.getElementById('farma-badges').innerHTML = badges.map(b =>
+    `<span class="farma-tag ${b.cls}"><span class="dot"></span>${b.txt}</span>`
+  ).join('');
+
+  /* Corpo do guia — mesmo padrão visual das Especificações Técnicas */
+  const rows = [
+    { icon:'🏷️', label:'Classe Terapêutica',        val: d.classe_terapeutica },
+    { icon:'💊', label:'Nome Comercial',             val: d.nome_comercial },
+    { icon:'🎯', label:'Indicação Primária',         val: d.indicacao_primaria },
+    { icon:'🎯', label:'Indicação Secundária',       val: d.indicacao_secundaria },
+    { icon:'⚖️', label:'Dose Mínima',                val: d.dose_minima },
+    { icon:'⚖️', label:'Dose Máxima',                val: d.dose_maxima },
+    { icon:'💉', label:'Via de Administração',       val: d.via_administracao },
+    { icon:'📋', label:'Posologia',                  val: d.posologia },
+    { icon:'⇄',  label:'Interações Medicamentosas',  val: d.interacoes },
+    { icon:'✕',  label:'Contraindicações / Restrição', val: d.contraindicacoes },
+    { icon:'⚠️', label:'Reações Adversas',           val: d.reacoes_adversas },
+    { icon:'☠️', label:'Superdosagem',               val: d.superdosagem },
+    { icon:'🩺', label:'Ajuste Renal e Hepático',    val: d.ajuste_renal_hepatico },
+    { icon:'🌡️', label:'Estabilidade',               val: d.estabilidade },
+    { icon:'💧', label:'Infusão',                    val: d.infusao },
+  ].filter(r => r.val && r.val.trim());
+
+  document.getElementById('farma-rows').innerHTML = rows.map(r => `
+    <div class="spec-row">
+      <span class="spec-icon">${r.icon}</span>
+      <div>
+        <div class="spec-label">${r.label}</div>
+        <div class="spec-val">${r.val}</div>
+      </div>
+    </div>`).join('');
+
+  const badge = document.getElementById('acc-farma-badge');
+  if (badge && d.controlado && !/^N[ÃA]O/i.test(d.controlado.trim())) {
+    badge.textContent = 'CONTROLADO';
+  }
 }
 </script>
 </body>
