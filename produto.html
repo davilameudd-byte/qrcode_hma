@@ -334,6 +334,17 @@ body::before{
 .farma-tag.safe .dot{background:var(--green)}
 .farma-tag.neutral{background:var(--gray-100);color:var(--gray-700)}
 .farma-tag.neutral .dot{background:var(--gray-500)}
+
+.aviso-limitado{
+  background:linear-gradient(135deg,#b45309,#f59e0b);
+  color:#fff;border-radius:var(--radius-md);
+  padding:13px 16px;margin-bottom:12px;
+  box-shadow:var(--shadow-md);
+  font-size:12.5px;line-height:1.5;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.aviso-limitado .ic{font-size:20px;flex-shrink:0}
+.aviso-limitado b{display:block;font-size:13px;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -375,6 +386,15 @@ body::before{
       </div>
     </div>
 
+    <!-- Aviso: produto sem dados de estoque, exibindo só o Guia Farmacêutico -->
+    <div class="aviso-limitado" id="aviso-limitado" style="display:none">
+      <span class="ic">⚠️</span>
+      <div>
+        <b>Sem dados de estoque</b>
+        Este código não foi encontrado no sistema de estoque no momento. Exibindo apenas as informações clínicas do Guia Farmacêutico.
+      </div>
+    </div>
+
     <!-- Status -->
     <div class="status-banner" id="status-banner">
       <div class="left">
@@ -389,7 +409,7 @@ body::before{
     </div>
 
     <!-- Indicadores -->
-    <div class="stats-grid">
+    <div class="stats-grid" id="stats-grid">
       <div class="stat-card">
         <div class="s-label">Estoque Total</div>
         <div class="s-value" id="f-estoque">--</div>
@@ -423,7 +443,7 @@ body::before{
     </div>
 
     <!-- Valores financeiros -->
-    <div class="section">
+    <div class="section" id="section-financeiro">
       <div class="section-title">💰 Valores Financeiros</div>
       <div class="info-row">
         <span class="k">Valor Unitário</span>
@@ -555,7 +575,11 @@ async function buscarProduto() {
       }
     });
     const p = await res.json();
-    if (p.erro) { showError(p.erro); return; }
+    if (p.erro) {
+      const mostrouGuia = await tentarApenasGuia(codigoBruto);
+      if (!mostrouGuia) showError(p.erro);
+      return;
+    }
     renderProduto(p);
   } catch(e) {
     showError(
@@ -760,6 +784,42 @@ function renderSpecs(specs) {
   loading.style.display = 'none';
   container.style.display = 'block';
   if (badge) badge.textContent = `${rows.length} itens`;
+}
+
+/* ── Modo sem estoque: código não existe em produtos, mas existe no Guia Farmacêutico ── */
+async function tentarApenasGuia(cod) {
+  const farmaco = await farmacoPromise;
+  const dados = farmaco && farmaco[cod];
+  if (!dados) return false;
+
+  // Cabeçalho mínimo (só com o que o guia sabe)
+  set('f-cod',   cod);
+  set('f-nome',  dados.medicamento || 'Medicamento');
+  set('f-grupo', 'MED');
+  set('f-tipo',  'Guia Farmacêutico');
+  $('product-photo').textContent = '💊';
+
+  // Esconde tudo que depende de dados de estoque
+  $('aviso-limitado').style.display = 'flex';
+  $('status-banner').style.display = 'none';
+  $('stats-grid').style.display = 'none';
+  $('section-financeiro').style.display = 'none';
+  $('acc-spec').style.display = 'none';
+  $('acc-info').style.display = 'none';
+  $('btn-contagem').style.display = 'none';
+
+  // Mostra e já abre o Guia Farmacêutico
+  renderGuiaFarmaceutico(dados);
+  const acc = $('acc-farma');
+  acc.style.display = 'block';
+  acc.classList.add('open');
+  acc.querySelector('.acc-header').setAttribute('aria-expanded', 'true');
+
+  set('f-hora', `Consultado às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`);
+
+  $('loading').style.display = 'none';
+  $('content').style.display = 'block';
+  return true;
 }
 
 /* ── Guia Farmacêutico ── */
