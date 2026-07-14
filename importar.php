@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-//  ATUALIZAR ESTOQUE HMA - Almoxarifado | PVAX | Trânsito
+//  ATUALIZAR ESTOQUE HMA - Almoxarifado | PVAX | Trânsito | Farmácia (MED)
 //  C:\xampp\htdocs\hma\importar.php
 // ============================================================
 
@@ -143,6 +143,84 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         }
         $db->close();
         echo json_encode(['status'=>'OK','mensagem'=>'Estoque Almoxarifado atualizado!','registros_lidos'=>count($regs),'atualizados'=>$ok,'nao_encontrados'=>$nok,'horario'=>date('d/m/Y H:i:s')],JSON_UNESCAPED_UNICODE);
+
+    // ── FARMÁCIA (Posição de Estoque - Medicamentos) ──────
+    } elseif($tipo==='farmacia'){
+        $regs=[];
+        if($ext==='csv'){
+            $h=fopen($tmp,'r');
+            $first=fgets($h);rewind($h);
+            $sep=substr_count($first,';')>substr_count($first,',') ? ';' : ',';
+            $hdr=array_map(fn($x)=>mb_strtoupper(trim($x),'UTF-8'),fgetcsv($h,0,$sep));
+            $cC=$cQ=$cV=$cT=$cP=-1;
+            foreach($hdr as $i=>$v){
+                if(preg_match('/C[ÓO]DIGO|COD/u',$v))$cC=$i;
+                if(preg_match('/QUANTIDADE|^QTD/u',$v))$cQ=$i;
+                if(preg_match('/VALOR.{0,5}UNI/u',$v))$cV=$i;
+                if($v==='TOTAL')$cT=$i;
+                if(preg_match('/PRODUTO|DESCRI/u',$v))$cP=$i;
+            }
+            if($cC<0)$cC=0;
+            while(($row=fgetcsv($h,0,$sep))!==false){
+                $cod=trim($row[$cC]??'');
+                if(!preg_match('/^\d{2}\.\d{2}\.\d{3}\.\d$/',$cod))continue;
+                $r=['cod'=>$cod,'qtd'=>(int)preg_replace('/[^0-9]/','', $row[$cQ]??'0')];
+                if($cV>=0)$r['valor_uni']=trim($row[$cV]??'');
+                if($cT>=0)$r['total']=trim($row[$cT]??'');
+                if($cP>=0)$r['produto']=trim($row[$cP]??'');
+                $regs[]=$r;
+            }
+            fclose($h);
+        } else {
+            $zip=ziOpen($tmp);
+            if(!$zip){echo json_encode(['erro'=>'Não abriu o XLSX']);exit;}
+            $rows=parseRows($zip);$zip->close();
+            $cC=$cQ=$cV=$cT=$cP=-1;$first=true;
+            foreach($rows as $data){
+                if($first){
+                    foreach($data as $i=>$v){
+                        $up=mb_strtoupper(trim($v),'UTF-8');
+                        if(preg_match('/C[ÓO]DIGO|COD\s*JDE|^COD$/u',$up))$cC=$i;
+                        if(preg_match('/QUANTIDADE|^QTD$|^QTDE$/u',$up))$cQ=$i;
+                        if(preg_match('/VALOR.{0,5}UNI/u',$up))$cV=$i;
+                        if($up==='TOTAL')$cT=$i;
+                        if(preg_match('/PRODUTO|DESCRI/u',$up))$cP=$i;
+                    }
+                    if($cC<0)$cC=0;
+                    $first=false;continue;
+                }
+                $cod=trim($data[$cC]??'');
+                if(!preg_match('/^\d{2}\.\d{2}\.\d{3}\.\d$/',$cod))continue;
+                $r=['cod'=>$cod,'qtd'=>(int)($data[$cQ]??0)];
+                if($cV>=0&&isset($data[$cV]))$r['valor_uni']='R$ '.number_format((float)$data[$cV],2,',','.');
+                if($cT>=0&&isset($data[$cT]))$r['total']='R$ '.number_format((float)$data[$cT],2,',','.');
+                if($cP>=0&&isset($data[$cP]))$r['produto']=trim($data[$cP]);
+                $regs[]=$r;
+            }
+        }
+        if(empty($regs)){echo json_encode(['erro'=>'Nenhum medicamento encontrado. Verifique as colunas Código e Quantidade.']);exit;}
+        $db=dbConnect();$ok=$nok=0;
+        foreach($regs as $r){
+            $produto=$r['produto']??'';
+            $grupo='MED';
+            $v=$r['valor_uni']??null;$t=$r['total']??null;
+            $st=$db->prepare("INSERT INTO produtos (cod_jde, produto, grupo, almoxarifado, estoque_total, valor_uni, total, atualizado_em)
+                VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+                ON DUPLICATE KEY UPDATE
+                    produto=IF(VALUES(produto)<>'',VALUES(produto),produto),
+                    grupo='MED',
+                    almoxarifado=VALUES(almoxarifado),
+                    estoque_total=VALUES(estoque_total),
+                    valor_uni=COALESCE(VALUES(valor_uni),valor_uni),
+                    total=COALESCE(VALUES(total),total),
+                    atualizado_em=CURRENT_TIMESTAMP");
+            $st->bind_param('sssiiss',$r['cod'],$produto,$grupo,$r['qtd'],$r['qtd'],$v,$t);
+            $st->execute();
+            if($st->affected_rows>0)$ok++;else$nok++;
+            $st->close();
+        }
+        $db->close();
+        echo json_encode(['status'=>'OK','mensagem'=>'Estoque da Farmácia atualizado!','registros_lidos'=>count($regs),'atualizados'=>$ok,'nao_encontrados'=>$nok,'horario'=>date('d/m/Y H:i:s')],JSON_UNESCAPED_UNICODE);
 
     // ── PVAX (ESTOQ149) ───────────────────────────────────
     } elseif($tipo==='pvax'){
@@ -403,6 +481,25 @@ input[type=file]{display:none}
     <input type="file" id="fi-consumo" accept=".xlsx,.csv,.txt" onchange="setF('consumo',this)">
     <button class="btn" id="btn-consumo" disabled onclick="importar('consumo')" style="background:linear-gradient(135deg,#7e1d7a,#b44db0)">📥 Importar Consumo</button>
     <div class="res" id="res-consumo"></div>
+  </div>
+
+  <!-- FARMÁCIA (Medicamentos) -->
+  <div class="box">
+    <div class="box-header">
+      <div class="box-icon">💊</div>
+      <div class="box-title">Estoque Farmácia</div>
+      <div class="box-sub">Posição de Estoque - Medicamentos</div>
+      <span class="badge" style="background:#dbeafe;color:#1e40af">Atualiza: almoxarifado (MED)</span>
+    </div>
+    <div class="drop" id="dz-farmacia" onclick="document.getElementById('fi-farmacia').click()" ondragover="dov(event,'farmacia')" ondragleave="dol('farmacia')" ondrop="ddr(event,'farmacia')">
+      <div class="d-icon">📂</div>
+      <p>Arraste ou <strong>clique para selecionar</strong></p>
+      <div class="tipos">Aceita: .xlsx · .csv</div>
+      <div class="file-badge" id="fn-farmacia" style="display:none"></div>
+    </div>
+    <input type="file" id="fi-farmacia" accept=".xlsx,.xls,.csv" onchange="setF('farmacia',this)">
+    <button class="btn" id="btn-farmacia" disabled onclick="importar('farmacia')" style="background:linear-gradient(135deg,#0f766e,#14b8a6)">📥 Importar Farmácia</button>
+    <div class="res" id="res-farmacia"></div>
   </div>
 
 </div>

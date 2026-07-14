@@ -742,11 +742,27 @@ function renderProduto(p) {
   /* Carregar specs via IA em background */
   carregarSpecs(p);
 
-  /* Carregar Guia Farmacêutico (só aparece se o produto for medicamento) */
-  carregarGuiaFarmaceutico(p);
+  /* Material → só o botão de Inventário | Medicamento → Guia Farmacêutico + Tabela de Diluição */
+  aplicarVisibilidadePorTipo(p);
+}
 
-  /* Carregar Tabela de Diluição (só aparece se houver dados para o código) */
-  carregarTabelaDiluicao(p);
+/* ── Decide, por código, se o produto é medicamento (Guia + Diluição) ou material (Inventário) ──
+   Basta o código existir em farmacoterapia.json (grande_grupo = MED) para virar medicamento.
+   Para cadastrar um novo medicamento, adicione a entrada em farmacoterapia.json (e em
+   diluicao.json, se for injetável) usando o mesmo cod_jde do produto — nada aqui precisa mudar. */
+async function aplicarVisibilidadePorTipo(p) {
+  const farmaco = await farmacoPromise;
+  const isMed = !!(farmaco && farmaco[p.cod]);
+
+  if (isMed) {
+    $('btn-contagem').style.display = 'none';
+    carregarGuiaFarmaceutico(p);
+    carregarTabelaDiluicao(p);
+  } else {
+    $('btn-contagem').style.display = '';
+    $('acc-farma').style.display = 'none';
+    $('acc-diluicao').style.display = 'none';
+  }
 }
 
 /* ── Acordeões ── */
