@@ -754,12 +754,12 @@ async function aplicarVisibilidadePorTipo(p) {
   const farmaco = await farmacoPromise;
   const isMed = !!(farmaco && farmaco[p.cod]);
 
+  $('btn-contagem').style.display = '';
+
   if (isMed) {
-    $('btn-contagem').style.display = 'none';
     carregarGuiaFarmaceutico(p);
     carregarTabelaDiluicao(p);
   } else {
-    $('btn-contagem').style.display = '';
     $('acc-farma').style.display = 'none';
     $('acc-diluicao').style.display = 'none';
   }
@@ -877,7 +877,8 @@ async function tentarApenasGuia(cod) {
   $('acc-spec').style.display = 'none';
   $('acc-info').style.display = 'none';
   $('acc-diluicao').style.display = 'none';
-  $('btn-contagem').style.display = 'none';
+  $('btn-contagem').style.display = '';
+  $('btn-contagem').href = FORMS_URL + '?usp=pp_url&' + FORMS_ENTRY_PRODUTO + '=' + encodeURIComponent(dados.medicamento || cod);
 
   // Mostra e já abre o Guia Farmacêutico
   renderGuiaFarmaceutico(dados);
