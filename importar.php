@@ -326,6 +326,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
         $db=dbConnect();
         $ok=$nok=0;
+        $db->query("UPDATE produtos SET transito = 0"); // zera tudo antes de alimentar só com o que veio no arquivo novo
 
         // Agrupar por código: somar saldo, concatenar pedidos e fornecedores únicos
         $agrupado=[];
