@@ -515,6 +515,10 @@ body::before{
         <div class="info-row"><span class="k">Fornecedor</span><span class="v" id="f-fornecedor">--</span></div>
         <div class="info-row"><span class="k">Pedido / OR</span><span class="v" id="f-pedido-or">--</span></div>
         <div class="info-row"><span class="k">Saldo a Chegar</span><span class="v" id="f-saldo-transito">--</span></div>
+        <div class="info-row"><span class="k">Quantidade Pedida</span><span class="v" id="f-qtd-pedido">--</span></div>
+        <div class="info-row" id="row-nr-of" style="display:none"><span class="k">Nº da OF</span><span class="v" id="f-nr-of">--</span></div>
+        <div class="info-row" id="row-comprador" style="display:none"><span class="k">Comprador</span><span class="v" id="f-comprador">--</span></div>
+        <div class="info-row" id="row-data-envio-of" style="display:none"><span class="k">Data Envio OF</span><span class="v" id="f-data-envio-of">--</span></div>
         <div class="info-row"><span class="k">Observações</span><span class="v" id="f-obs">--</span></div>
       </div>
     </div>
@@ -715,6 +719,22 @@ function renderProduto(p) {
   const pedOr = [p.pedido, p.or_].filter(x=>x&&x.trim()).join(' / ');
   set('f-pedido-or', pedOr || '—');
   set('f-saldo-transito', transito > 0 ? (fmtNum(transito) + ' unidades a chegar') : 'Sem pedidos em trânsito');
+  set('f-qtd-pedido', num(p.qtd_pedido) > 0 ? fmtNum(num(p.qtd_pedido)) : '—');
+
+  // Campos que só existem quando o pedido já avançou pra fase de OF — esconde a linha se vazio
+  function setRowSeExistir(rowId, fieldId, val){
+    const row = $(rowId);
+    if (val && String(val).trim()) {
+      set(fieldId, val);
+      if (row) row.style.display = 'flex';
+    } else if (row) {
+      row.style.display = 'none';
+    }
+  }
+  setRowSeExistir('row-nr-of',         'f-nr-of',         p.nr_of);
+  setRowSeExistir('row-comprador',     'f-comprador',     p.comprador);
+  setRowSeExistir('row-data-envio-of', 'f-data-envio-of', p.data_envio_of);
+
   set('f-obs', p.obs || '—');
 
   /* Status (cobertura) */
