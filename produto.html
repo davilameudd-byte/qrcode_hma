@@ -513,7 +513,7 @@ body::before{
       <div class="acc-body" id="acc-info-body">
         <div class="info-row"><span class="k">Tipo de Compra</span><span class="v" id="f-tipo-compra">--</span></div>
         <div class="info-row"><span class="k">Fornecedor</span><span class="v" id="f-fornecedor">--</span></div>
-        <div class="info-row"><span class="k">Pedido / OR</span><span class="v" id="f-pedido-or">--</span></div>
+        <div class="info-row"><span class="k">Pedido</span><span class="v" id="f-pedido-or">--</span></div>
         <div class="info-row"><span class="k">Saldo a Chegar</span><span class="v" id="f-saldo-transito">--</span></div>
         <div class="info-row"><span class="k">Quantidade Pedida</span><span class="v" id="f-qtd-pedido">--</span></div>
         <div class="info-row" id="row-nr-of" style="display:none"><span class="k">Nº da OF</span><span class="v" id="f-nr-of">--</span></div>
@@ -716,8 +716,7 @@ function renderProduto(p) {
   /* Infos adicionais */
   set('f-tipo-compra', p.tipo);
   set('f-fornecedor',  p.fornecedor);
-  const pedOr = [p.pedido, p.or_].filter(x=>x&&x.trim()).join(' / ');
-  set('f-pedido-or', pedOr || '—');
+  set('f-pedido-or', (p.pedido && p.pedido.trim()) || '—');
   set('f-saldo-transito', transito > 0 ? (fmtNum(transito) + ' unidades a chegar') : 'Sem pedidos em trânsito');
   set('f-qtd-pedido', num(p.qtd_pedido) > 0 ? fmtNum(num(p.qtd_pedido)) : '—');
 
